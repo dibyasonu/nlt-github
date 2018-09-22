@@ -82,7 +82,7 @@ def user_config(admin,adduser,deluser,showusers):
 				data[user_name]=[response.json()['token'],response.json()['url']]
 			with open(pat+'.nlt', 'w+')as file:
 				json.dump(data,file)				
-
+			click.secho('user added succesfully',bold=True,fg='green')	
 			#checks if user don't exist locally but token is in github import it and add user(enhancment)<not possible>
 			#so delete it and add another token
 		

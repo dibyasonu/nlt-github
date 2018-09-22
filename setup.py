@@ -15,7 +15,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        nlt=nlt_m:cli
+        nlt=nlt_gb:cli
         
     ''',
 )
