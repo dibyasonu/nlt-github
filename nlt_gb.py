@@ -96,6 +96,8 @@ def user_config(admin,adduser,deluser,showusers):
 				with open(pat+'.nlt', 'w+')as file:
 					json.dump(data,file)		
 				click.secho('user deleted succesfully',bold=True,fg='green')
+			else:
+				click.secho('Enter the right credentials',bold=True,fg='red')	
 		else:
 			click.secho('user not found',bold=True,fg='red')
 
@@ -103,10 +105,38 @@ def user_config(admin,adduser,deluser,showusers):
 		users=[x for x in data]
 		if len(users):
 			for i in users:
-				click.secho((i+'\n'),bold=True,fg='blue')			
+				click.secho(i,bold=True,fg='blue')			
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 		#checks users as well as their status and generate the status	
+
+@cli.command('add',help="Add required files")
+@click.option('--license',is_flag=bool,default=False,help="Add license to your project")
+@click.option('--gitignore',is_flag=bool,default=False,help="Add gitignore to your Project")
+@click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
+def add(license,gitignore,readme):
+	if license:
+		r=requests.get('https://api.github.com/licenses');
+		licenses=[x['key'] for x in r.json()]
+		licenses_url=[x['url'] for x in r.json()]
+		count=0;
+		for i in licenses:
+			count+=1
+			x=str(count)+" > "+i
+			click.secho(x,bold=True,fg='blue')
+		lic_ch=click.prompt('Enter the no',type=int)-1
+		data=requests.get(licenses_url[lic_ch]).json()['body']
+		with open('LICENSE', 'w+')as file:
+			file.write(data)
+	if gitignore:
+		with open('.gitignore', 'w+')as file:
+			pass
+	if readme:			
+		with open('README.md', 'w+')as file:
+			pass	
+	
+	execute('git status')		
+
 
 
 if __name__ == '__main__':
