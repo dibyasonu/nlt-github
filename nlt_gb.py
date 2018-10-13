@@ -116,10 +116,10 @@ def user_config(admin,adduser,deluser,showusers):
 @click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
 def add(license,gitignore,readme):
 	if license:
-		r=requests.get('https://api.github.com/licenses');
+		r=requests.get('https://api.github.com/licenses')
 		licenses=[x['key'] for x in r.json()]
 		licenses_url=[x['url'] for x in r.json()]
-		count=0;
+		count=0
 		for i in licenses:
 			count+=1
 			x=str(count)+" > "+i
