@@ -1,7 +1,7 @@
 # NLT
-*NLT is an open source project which makes sure that you don't have to leave your beloved terminal to upload a new project in Github.*
+***NLT is a project which makes sure you don't have to leave your beloved terminal to upload a new project in Github.***
 
-![](https://img.shields.io/badge/python-3-blue.svg?style=for-the-badge&logo=python)
+![](https://img.shields.io/badge/python-3-blue.svg?style=flat-square)
 
 ## Installation
 `$ git clone https://github.com/dibyasonu/NLT.git`
