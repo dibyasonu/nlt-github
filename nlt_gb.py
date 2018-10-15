@@ -1,5 +1,4 @@
 import os
-import platform
 import getpass
 import subprocess
 import requests
@@ -11,21 +10,23 @@ import colorama
 def cli():
 	pass
 def read_data():
-	sys_data=[platform.system(),getpass.getuser()]
-	if sys_data[0]=='Windows':
-		pat='C:\\Users\\'+sys_data[1]+'\\'
-	else: 
-		pat='/home/'+sys_data[1]+'/'		
+	osuser = getpass.getuser()
+	
+	if os.name == 'nt':
+		pat = os.path.join("C:", "Users", osuser)
+	else:
+		pat = os.path.join("/", "home", osuser)
 	
 	if not os.path.isfile(pat+'.nlt'):
-		with open(pat+'.nlt', 'w')as file:
+		nltpath = os.path.join(pat, '.nlt')
+		with open(nltpath, 'w')as file:
 			data={}
 			json.dump(data,file)
 	else:
-		with open(pat+'.nlt', 'r')as file:
+		with open(nltpath, 'r')as file:
 			data=json.load(file)
-	x=[data,pat]		
-	return x						
+
+	return [data,pat]
 	
 def execute(com):
 	proc=subprocess.Popen(com,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
