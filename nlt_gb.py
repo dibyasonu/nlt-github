@@ -13,7 +13,7 @@ def read_data():
 	osuser = getpass.getuser()
 	
 	if os.name == 'nt':
-		pat = os.path.join("C:", "Users", osuser)
+		pat = os.path.join("C:", os.sep, "Users", osuser)
 	else:
 		pat = os.path.join("/", "home", osuser)
 	
