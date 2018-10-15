@@ -22,7 +22,9 @@ setup(
     install_requires=[
         'requests',
         'click',
-        'colorama'
+        'colorama',
+        'windows-curses;platform_system=="Windows"',
+        'pick'
     ],
     entry_points='''
         [console_scripts]
