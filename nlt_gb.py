@@ -6,7 +6,8 @@ import requests
 import click
 import json
 import colorama
-from license import generateLicense
+import licenses
+from pick import pick
 
 @click.group()
 def cli():
@@ -115,14 +116,29 @@ def user_config(admin,adduser,deluser,showusers):
 @click.option('--license',is_flag=bool,default=False,help="Add license to your project")
 @click.option('--gitignore',is_flag=bool,default=False,help="Add gitignore to your Project")
 @click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
-def add(license,gitignore,readme):
+def add(license, gitignore, readme):
 	if license:
-		generateLicense()
+
+		click.clear()
+		licenseURL = 'https://api.github.com/licenses'
+		GETResponse = licenses.getRequestsAsJSON(licenseURL)
+
+		licensesDict = {}
+		for i in GETResponse:
+			licensesDict[i['key']] = i['name']
+
+		promptMessage = 'Choose a license: '
+		title = promptMessage
+		options = list(licensesDict.values())
+		chosenLicense, index = pick(options, title, indicator = '=>', default_index = 0)
+		# user selection is stored in chosenLicense, which is the index'th element in options = licenses
+		licenses.generateLicense(licenseURL, licensesDict, chosenLicense)
+
 	if gitignore:
-		with open('.gitignore', 'w+')as file:
+		with open('.gitignore', 'w+') as file:
 			pass
 	if readme:			
-		with open('README.md', 'w+')as file:
+		with open('README.md', 'w+') as file:
 			pass	
 	
 	click.pause(info = 'Press any key to view git status ...')
