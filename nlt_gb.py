@@ -17,8 +17,8 @@ def read_data():
 	else:
 		pat = os.path.join("/", "home", osuser)
 	
-	if not os.path.isfile(pat+'.nlt'):
-		nltpath = os.path.join(pat, '.nlt')
+	nltpath = os.path.join(pat, '.nlt')
+	if not os.path.isfile(nltpath):
 		with open(nltpath, 'w')as file:
 			data={}
 			json.dump(data,file)
@@ -61,6 +61,7 @@ def push_remote(username,privy):
 			click.secho(str(response.json()),bold=True,fg='red')
 	else:
 		click.secho('user not found',bold=True,fg='red')
+		click.secho('\nAdd a user using "nlt config --adduser"\n',bold=True,fg='green')
 
 @cli.command('config',help="Configure Users")
 @click.option('--admin',is_flag=bool,default=False,help="Add a default global user for your machine")
@@ -88,7 +89,9 @@ def user_config(admin,adduser,deluser,showusers):
 			response=requests.post('https://api.github.com/authorizations',data=payload,auth=(user_name, password))
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
-			with open(pat+'.nlt', 'w+')as file:
+
+			nltpath = os.path.join(pat, '.nlt')
+			with open(nltpath, 'w+') as file:
 				json.dump(data,file)
 			click.secho('user added succesfully',bold=True,fg='green')	
 			#checks if user don't exist locally but token is in github import it and add user(enhancment)<not possible>
