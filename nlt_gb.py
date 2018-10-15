@@ -42,16 +42,23 @@ def push_remote(username,privy):
 		proname=click.prompt('Please enter the Project name')
 		desc=click.prompt('A short description of the repository.')
 		headers={"Authorization": "token "+data[username][0]}
+		proname = proname.strip().replace(' ', '-') #sanitization
+		
 		payload={"name": proname,"description": desc,"private": privy,"has_issues": True,"has_projects": True,"has_wiki": True}
+		
 		response=requests.post('https://api.github.com/user/repos', headers=headers, data=json.dumps(payload))
-		if response.status_code==201:
+		
+		if response.status_code == 201:
+			repo_url = response.json()['clone_url']
 			click.secho('Repo created succesfully\n',bold=True,fg='green')
-			command="git remote add origin "+response.json()['clone_url']
+			click.secho(f'\nYour repository name is {proname}',bold=True,fg='green')
+			click.secho(f'\nand it is at {repo_url}\n',bold=True,fg='green')
+			command="git remote add origin "+repo_url
 			execute(command)
 			click.secho('Remote added succesfully',bold=True,fg='green')
 
 		else:
-			click.secho(str(response.json()),bold=True,fg='red')	
+			click.secho(str(response.json()),bold=True,fg='red')
 	else:
 		click.secho('user not found',bold=True,fg='red')
 
