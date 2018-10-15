@@ -1,5 +1,4 @@
 import os
-import platform
 import getpass
 import subprocess
 import requests
@@ -13,21 +12,23 @@ from pick import pick
 def cli():
 	pass
 def read_data():
-	sys_data=[platform.system(),getpass.getuser()]
-	if sys_data[0]=='Windows':
-		pat='C:\\Users\\'+sys_data[1]+'\\'
-	else: 
-		pat='/home/'+sys_data[1]+'/'		
+	osuser = getpass.getuser()
 	
-	if not os.path.isfile(pat+'.nlt'):
-		with open(pat+'.nlt', 'w')as file:
+	if os.name == 'nt':
+		pat = os.path.join("C:", os.sep, "Users", osuser)
+	else:
+		pat = os.path.join("/", "home", osuser)
+	
+	nltpath = os.path.join(pat, '.nlt')
+	if not os.path.isfile(nltpath):
+		with open(nltpath, 'w')as file:
 			data={}
 			json.dump(data,file)
 	else:
-		with open(pat+'.nlt', 'r')as file:
+		with open(nltpath, 'r')as file:
 			data=json.load(file)
-	x=[data,pat]		
-	return x						
+
+	return [data,pat]
 	
 def execute(com):
 	proc=subprocess.Popen(com,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -43,18 +44,26 @@ def push_remote(username,privy):
 		proname=click.prompt('Please enter the Project name')
 		desc=click.prompt('A short description of the repository.')
 		headers={"Authorization": "token "+data[username][0]}
+		proname = proname.strip().replace(' ', '-') #sanitization
+		
 		payload={"name": proname,"description": desc,"private": privy,"has_issues": True,"has_projects": True,"has_wiki": True}
+		
 		response=requests.post('https://api.github.com/user/repos', headers=headers, data=json.dumps(payload))
-		if response.status_code==201:
+		
+		if response.status_code == 201:
+			repo_url = response.json()['clone_url']
 			click.secho('Repo created succesfully\n',bold=True,fg='green')
-			command="git remote add origin "+response.json()['clone_url']
+			click.secho(f'\nYour repository name is {proname}',bold=True,fg='green')
+			click.secho(f'\nand it is at {repo_url}\n',bold=True,fg='green')
+			command="git remote add origin "+repo_url
 			execute(command)
 			click.secho('Remote added succesfully',bold=True,fg='green')
 
 		else:
-			click.secho(str(response.json()),bold=True,fg='red')	
+			click.secho(str(response.json()),bold=True,fg='red')
 	else:
 		click.secho('user not found',bold=True,fg='red')
+		click.secho('\nAdd a user using "nlt config --adduser"\n',bold=True,fg='green')
 
 @cli.command('config',help="Configure Users")
 @click.option('--admin',is_flag=bool,default=False,help="Add a default global user for your machine")
@@ -69,7 +78,7 @@ def user_config(admin,adduser,deluser,showusers):
 			pass
 			#work to do	
 		else:
-			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')			
+			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 	if adduser:
 		user_name=click.prompt('Please enter your Github user name')
 		password=click.prompt('Enter the password',hide_input=True)
@@ -82,9 +91,13 @@ def user_config(admin,adduser,deluser,showusers):
 			response=requests.post('https://api.github.com/authorizations',data=payload,auth=(user_name, password))
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
-			with open(pat+'.nlt', 'w+')as file:
-				json.dump(data,file)				
+
+			nltpath = os.path.join(pat, '.nlt')
+			with open(nltpath, 'w+') as file:
+				json.dump(data,file)
 			click.secho('user added succesfully',bold=True,fg='green')	
+			
+			# ADD CONDITION TO CHECK IF TOKEN EXISTS
 			#checks if user don't exist locally but token is in github import it and add user(enhancment)<not possible>
 			#so delete it and add another token
 		
@@ -96,10 +109,10 @@ def user_config(admin,adduser,deluser,showusers):
 			if response.status_code==204:
 				data.pop(user_name)
 				with open(pat+'.nlt', 'w+')as file:
-					json.dump(data,file)		
+					json.dump(data,file)
 				click.secho('user deleted succesfully',bold=True,fg='green')
 			else:
-				click.secho('Enter the right credentials',bold=True,fg='red')	
+				click.secho('Enter the right credentials',bold=True,fg='red')
 		else:
 			click.secho('user not found',bold=True,fg='red')
 
@@ -107,7 +120,7 @@ def user_config(admin,adduser,deluser,showusers):
 		users=[x for x in data]
 		if len(users):
 			for i in users:
-				click.secho(i,bold=True,fg='blue')			
+				click.secho(i,bold=True,fg='blue')
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 		#checks users as well as their status and generate the status	
@@ -141,11 +154,9 @@ def add(license, gitignore, readme):
 		with open('README.md', 'w+') as file:
 			pass	
 	
-	click.pause(info = 'Press any key to view git status ...')
+  click.pause(info = 'Press any key to view git status ...')
 	click.clear()
-	execute('git status')		
-
-
+	execute('git status')
 
 if __name__ == '__main__':
 	cli()
