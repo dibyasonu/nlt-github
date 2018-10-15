@@ -154,7 +154,7 @@ def add(license, gitignore, readme):
 		with open('README.md', 'w+') as file:
 			pass	
 	
-  click.pause(info = 'Press any key to view git status ...')
+  	click.pause(info = 'Press any key to view git status ...')
 	click.clear()
 	execute('git status')
 
