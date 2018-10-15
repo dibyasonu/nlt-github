@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 
-
 setup(
     name ='NLT',
     version ='1.0',
@@ -12,9 +11,7 @@ setup(
     install_requires=[
         'requests',
         'click',
-        'colorama',
-        'windows-curses;platform_system=="Windows"',
-        'pick'
+        'colorama'
     ],
     entry_points='''
         [console_scripts]
