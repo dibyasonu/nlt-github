@@ -75,7 +75,7 @@ def user_config(admin,adduser,deluser,showusers):
 			pass
 			#work to do	
 		else:
-			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')			
+			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 	if adduser:
 		user_name=click.prompt('Please enter your Github user name')
 		password=click.prompt('Enter the password',hide_input=True)
@@ -89,7 +89,7 @@ def user_config(admin,adduser,deluser,showusers):
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
 			with open(pat+'.nlt', 'w+')as file:
-				json.dump(data,file)				
+				json.dump(data,file)
 			click.secho('user added succesfully',bold=True,fg='green')	
 			#checks if user don't exist locally but token is in github import it and add user(enhancment)<not possible>
 			#so delete it and add another token
@@ -102,10 +102,10 @@ def user_config(admin,adduser,deluser,showusers):
 			if response.status_code==204:
 				data.pop(user_name)
 				with open(pat+'.nlt', 'w+')as file:
-					json.dump(data,file)		
+					json.dump(data,file)
 				click.secho('user deleted succesfully',bold=True,fg='green')
 			else:
-				click.secho('Enter the right credentials',bold=True,fg='red')	
+				click.secho('Enter the right credentials',bold=True,fg='red')
 		else:
 			click.secho('user not found',bold=True,fg='red')
 
@@ -113,7 +113,7 @@ def user_config(admin,adduser,deluser,showusers):
 		users=[x for x in data]
 		if len(users):
 			for i in users:
-				click.secho(i,bold=True,fg='blue')			
+				click.secho(i,bold=True,fg='blue')
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 		#checks users as well as their status and generate the status	
@@ -143,7 +143,7 @@ def add(license,gitignore,readme):
 		with open('README.md', 'w+')as file:
 			pass	
 	
-	execute('git status')		
+	execute('git status')
 
 
 
