@@ -6,6 +6,7 @@ import requests
 import click
 import json
 import colorama
+from license import generateLicense
 
 @click.group()
 def cli():
@@ -116,18 +117,7 @@ def user_config(admin,adduser,deluser,showusers):
 @click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
 def add(license,gitignore,readme):
 	if license:
-		r=requests.get('https://api.github.com/licenses')
-		licenses=[x['key'] for x in r.json()]
-		licenses_url=[x['url'] for x in r.json()]
-		count=0
-		for i in licenses:
-			count+=1
-			x=str(count)+" > "+i
-			click.secho(x,bold=True,fg='blue')
-		lic_ch=click.prompt('Enter the no',type=int)-1
-		data=requests.get(licenses_url[lic_ch]).json()['body']
-		with open('LICENSE', 'w+')as file:
-			file.write(data)
+		generateLicense()
 	if gitignore:
 		with open('.gitignore', 'w+')as file:
 			pass
@@ -135,6 +125,8 @@ def add(license,gitignore,readme):
 		with open('README.md', 'w+')as file:
 			pass	
 	
+	click.pause(info = 'Press any key to view git status ...')
+	click.clear()
 	execute('git status')		
 
 
