@@ -94,6 +94,8 @@ def user_config(admin,adduser,deluser,showusers):
 			with open(nltpath, 'w+') as file:
 				json.dump(data,file)
 			click.secho('user added succesfully',bold=True,fg='green')	
+			
+			# ADD CONDITION TO CHECK IF TOKEN EXISTS
 			#checks if user don't exist locally but token is in github import it and add user(enhancment)<not possible>
 			#so delete it and add another token
 		
