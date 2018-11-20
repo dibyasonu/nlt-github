@@ -11,12 +11,28 @@
 ## Usage
 ```
 Usage: nlt [OPTIONS] COMMAND [ARGS]...
+
 Options:
   --help  Show this message and exit.
 
 Commands:
+  add            Add required files
   config         Configure Users
   create-remote  create a project on Github and add remote origin
+```
+
+#### Add required files
+
+```
+Usage: nlt add [OPTIONS]
+
+  Add required files
+
+Options:
+  --license    Add license to your project
+  --gitignore  Add gitignore to your Project
+  --readme     Addd README to your project
+  --help       Show this message and exit.
 ```
 
 #### Configure Users
