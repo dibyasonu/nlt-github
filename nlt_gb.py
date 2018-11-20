@@ -1,4 +1,5 @@
 import os
+import sys
 import getpass
 import subprocess
 import requests
@@ -7,10 +8,13 @@ import json
 import colorama
 import licenses
 from pick import pick
+from pick import Picker
 
 @click.group()
 def cli():
 	pass
+
+
 def read_data():
 	osuser = getpass.getuser()
 	
@@ -29,17 +33,24 @@ def read_data():
 			data=json.load(file)
 
 	return [data,pat]
-	
+
+
 def execute(com):
 	proc=subprocess.Popen(com,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 	stdout_value = proc.communicate()[0]
 	print(stdout_value.decode("utf-8"))
+
+
+def go_back(picker):
+	return None, -1
+
 
 @cli.command('create-remote',short_help='create a project on Github and add remote origin ')
 @click.option('--username',prompt=True,help='username to push')
 @click.option('--privy',is_flag=bool,default=False,help="create a private repository if used")
 def push_remote(username,privy):
 	data=read_data()[0]
+
 	if username in data.keys():
 		proname=click.prompt('Please enter the Project name')
 		desc=click.prompt('A short description of the repository.')
@@ -65,6 +76,7 @@ def push_remote(username,privy):
 		click.secho('user not found',bold=True,fg='red')
 		click.secho('\nAdd a user using "nlt config --adduser"\n',bold=True,fg='green')
 
+
 @cli.command('config',help="Configure Users")
 @click.option('--admin',is_flag=bool,default=False,help="Add a default global user for your machine")
 @click.option('--adduser',is_flag=bool,default=False,help="Add a user and their credentials")
@@ -73,26 +85,32 @@ def push_remote(username,privy):
 def user_config(admin,adduser,deluser,showusers):
 	data=read_data()[0]
 	pat=read_data()[1]
+
 	if admin:
+
 		if bool(data):
 			pass
 			#work to do	
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
+
 	if adduser:
 		user_name=click.prompt('Please enter your Github user name')
 		password=click.prompt('Enter the password',hide_input=True)
 		if user_name in data.keys():
 			click.secho('user exists',bold=True,fg='red')
 			#checks whether token status is ok	output exists(enhancment)
-			#token status is not ok ask to delete and create a new token;addusr(enhancment)	
+			#token status is not ok ask to delete and create a new token;addusr(enhancment)
+
 		else:
 			payload='{"scopes": ["admin:public_key", "admin:repo_hook", "delete_repo", "repo", "user"], "note": "NLT"}'
 			response=requests.post('https://api.github.com/authorizations',data=payload,auth=(user_name, password))
+
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
 
 			nltpath = os.path.join(pat, '.nlt')
+
 			with open(nltpath, 'w+') as file:
 				json.dump(data,file)
 			click.secho('user added succesfully',bold=True,fg='green')	
@@ -104,10 +122,13 @@ def user_config(admin,adduser,deluser,showusers):
 	if deluser:
 		user_name=click.prompt('Please enter your Github user name')
 		password=click.prompt('Enter the password',hide_input=True)
+
 		if user_name in data.keys():
 			response=requests.delete(data[user_name][1], auth=(user_name, password))
+
 			if response.status_code==204:
 				data.pop(user_name)
+
 				with open(pat+'.nlt', 'w+')as file:
 					json.dump(data,file)
 				click.secho('user deleted succesfully',bold=True,fg='green')
@@ -118,6 +139,7 @@ def user_config(admin,adduser,deluser,showusers):
 
 	if showusers:
 		users=[x for x in data]
+
 		if len(users):
 			for i in users:
 				click.secho(i,bold=True,fg='blue')
@@ -130,33 +152,59 @@ def user_config(admin,adduser,deluser,showusers):
 @click.option('--gitignore',is_flag=bool,default=False,help="Add gitignore to your Project")
 @click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
 def add(license, gitignore, readme):
-	if license:
 
+	if license:
 		click.clear()
 		licenseURL = 'https://api.github.com/licenses'
 		GETResponse = licenses.getRequestsAsJSON(licenseURL)
-
 		licensesDict = {}
+
 		for i in GETResponse:
 			licensesDict[i['key']] = i['name']
-
-		promptMessage = 'Choose a license: '
+		promptMessage = 'Choose a license or press s to stop'
 		title = promptMessage
 		options = list(licensesDict.values())
-		chosenLicense, index = pick(options, title, indicator = '=>', default_index = 0)
+		picker = Picker(options, title, indicator = '=>', default_index = 0)
+		picker.register_custom_handler(ord('s'),  go_back)
+		chosenLicense, index = picker.start()
 		# user selection is stored in chosenLicense, which is the index'th element in options = licenses
-		licenses.generateLicense(licenseURL, licensesDict, chosenLicense)
+		if index != -1:
+			licenses.generateLicense(licenseURL, licensesDict, chosenLicense)
+		else:
+			sys.exit(0)
 
 	if gitignore:
-		with open('.gitignore', 'w+') as file:
-			pass
+		url = "https://api.github.com/repos/github/gitignore/contents/"
+		r = requests.get(url)
+
+		if r.status_code==200:
+			x = r.json()
+		else:
+			click.secho("Internal error occured.", bold=True, fg='red')
+			sys.exit(0)
+		ignores = [{"name" : item['name'], "url" : item['download_url']} for item in x if item['type']=='file' and ".gitignore" in item['name']]
+		promptMessage = 'Choose a gitignore \n(press SPACE to mark, ENTER to continue, s to stop):'
+		title = promptMessage
+		options = [item['name'] for item in ignores]
+		picker = Picker(options, title, multi_select=True, min_selection_count=1)
+		picker.register_custom_handler(ord('s'),  go_back)
+		selected = picker.start()
+
+		if type(selected) == list:
+			d_urls = [ignores[item[1]]['url'] for item in selected]
+		else:
+			sys.exit(0)
+		sep = "\n"+("#" * 40)+"\n"
+		str_write = ''.join(["".join(sep+requests.get(item).text+sep) for item in d_urls])
+
+		with open('.gitignore', 'a+') as file:
+			file.write(str_write)
+		click.secho("gitignore templates added succesfully.\n", fg = "green", bold = True)
+
 	if readme:			
 		with open('README.md', 'w+') as file:
 			pass	
-	
-  	click.pause(info = 'Press any key to view git status ...')
-	click.clear()
-	execute('git status')
+
 
 if __name__ == '__main__':
 	cli()
