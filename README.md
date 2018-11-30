@@ -1,10 +1,11 @@
-# NLT
-*NLT is an open source project which makes sure that you don't have to leave your beloved terminal to upload a new project in Github.*
+# nlt-github
+*nlt-github is an open source project which makes sure that you don't have to leave your beloved terminal to upload a new project in Github.*
 
 ![](https://img.shields.io/badge/python-3-blue.svg?style=for-the-badge&logo=python)
+[![Gitter](https://img.shields.io/gitter/room/:user/:repo.svg?style=for-the-badge)](https://gitter.im/kwoc_19/nlt-github?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
 ## Installation
-`$ git clone https://github.com/dibyasonu/NLT.git`
+`$ git clone https://github.com/dibyasonu/nlt-github.git`
 
 `$ pip install --editable .`
 
@@ -29,8 +30,8 @@ Usage: nlt add [OPTIONS]
   Add required files
 
 Options:
-  --license    Add license to your project
-  --gitignore  Add gitignore to your Project
+  --license    Add license to your project from different options
+  --gitignore  Add gitignore to your Project from different options
   --readme     Addd README to your project
   --help       Show this message and exit.
 ```
