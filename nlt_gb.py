@@ -45,9 +45,9 @@ def go_back(picker):
 	return None, -1
 
 
-@cli.command('create-remote',short_help='create a project on Github and add remote origin ')
-@click.option('--username',prompt=True,help='username to push')
-@click.option('--privy',is_flag=bool,default=False,help="create a private repository if used")
+@cli.command('create-remote',short_help='create a new repo in Github and add remote origin to the local project.')
+@click.option('--username',prompt=True,help='provide username in whose account the new repo is to be created.')
+@click.option('--privy',is_flag=bool,default=False,help="create a private repository if used.")
 def push_remote(username,privy):
 	data=read_data()[0]
 
@@ -78,10 +78,10 @@ def push_remote(username,privy):
 
 
 @cli.command('config',help="Configure Users")
-@click.option('--admin',is_flag=bool,default=False,help="Add a default global user for your machine")
-@click.option('--adduser',is_flag=bool,default=False,help="Add a user and their credentials")
-@click.option('--deluser',is_flag=bool,default=False,help="Remove user and their credentials")
-@click.option('--showusers',is_flag=bool,default=False,help="Show users and token status")
+# @click.option('--admin',is_flag=bool,default=False,help="Add a default global user for your machine")
+@click.option('--adduser',is_flag=bool,default=False,help="Creates a personal access token in github and stores them locally.")
+@click.option('--deluser',is_flag=bool,default=False,help="Remove created personal access token from github and locally.")
+@click.option('--showusers',is_flag=bool,default=False,help="Show added users.")
 def user_config(admin,adduser,deluser,showusers):
 	data=read_data()[0]
 	pat=read_data()[1]
@@ -148,9 +148,9 @@ def user_config(admin,adduser,deluser,showusers):
 		#checks users as well as their status and generate the status	
 
 @cli.command('add',help="Add required files")
-@click.option('--license',is_flag=bool,default=False,help="Add license to your project")
-@click.option('--gitignore',is_flag=bool,default=False,help="Add gitignore to your Project")
-@click.option('--readme',is_flag=bool,default=False,help="Addd README to your project")
+@click.option('--license',is_flag=bool,default=False,help="Add license templates from the list to your project.")
+@click.option('--gitignore',is_flag=bool,default=False,help="Add gitignore template from the list to your Project.")
+@click.option('--readme',is_flag=bool,default=False,help="Addd README to your project.")
 def add(license, gitignore, readme):
 
 	if license:
