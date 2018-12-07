@@ -82,17 +82,17 @@ def push_remote(username,privy):
 @click.option('--adduser',is_flag=bool,default=False,help="Creates a personal access token in github and stores them locally.")
 @click.option('--deluser',is_flag=bool,default=False,help="Remove created personal access token from github and locally.")
 @click.option('--showusers',is_flag=bool,default=False,help="Show added users.")
-def user_config(admin,adduser,deluser,showusers):
+def user_config(adduser,deluser,showusers):
 	data=read_data()[0]
 	pat=read_data()[1]
 
-	if admin:
+	# if admin:
 
-		if bool(data):
-			pass
-			#work to do	
-		else:
-			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
+	# 	if bool(data):
+	# 		pass
+	# 		#work to do
+	# 	else:
+	# 		click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
 
 	if adduser:
 		user_name=click.prompt('Please enter your Github user name')
