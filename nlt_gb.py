@@ -15,24 +15,32 @@ def cli():
 	pass
 
 
-def read_data():
+def file_handler(*argv):
 	osuser = getpass.getuser()
-	
 	if os.name == 'nt':
 		pat = os.path.join("C:", os.sep, "Users", osuser)
+	elif sys.platform == 'darwin':
+		pat = os.path.join("/","Users",osuser)
 	else:
 		pat = os.path.join("/", "home", osuser)
-	
-	nltpath = os.path.join(pat, '.nlt')
+	nltpath = os.path.join(pat,'.nlt')
 	if not os.path.isfile(nltpath):
-		with open(nltpath, 'w')as file:
-			data={}
-			json.dump(data,file)
+			with open(nltpath, 'w')as file:
+				if(not len(argv)):
+					data = {}
+				else:
+					data = argv[0]
+				json.dump(data,file)
 	else:
-		with open(nltpath, 'r')as file:
-			data=json.load(file)
+		if(not len(argv)):
+			with open(nltpath, 'r') as file:
+				data = json.load(file)
+		else:
+			with open(nltpath,'w') as file:
+				data = argv[0]
+				json.dump(data,file)
 
-	return [data,pat]
+	return data
 
 
 def execute(com):
@@ -49,7 +57,7 @@ def go_back(picker):
 @click.option('--username',prompt=True,help='provide username in whose account the new repo is to be created.')
 @click.option('--privy',is_flag=bool,default=False,help="create a private repository if used.")
 def push_remote(username,privy):
-	data=read_data()[0]
+	data=file_handler()
 
 	if username in data.keys():
 		proname=click.prompt('Please enter the Project name')
@@ -83,9 +91,7 @@ def push_remote(username,privy):
 @click.option('--deluser',is_flag=bool,default=False,help="Remove created personal access token from github and locally.")
 @click.option('--showusers',is_flag=bool,default=False,help="Show added users.")
 def user_config(adduser,deluser,showusers):
-	data=read_data()[0]
-	pat=read_data()[1]
-
+	data=file_handler()
 	# if admin:
 
 	# 	if bool(data):
@@ -109,10 +115,7 @@ def user_config(adduser,deluser,showusers):
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
 
-			nltpath = os.path.join(pat, '.nlt')
-
-			with open(nltpath, 'w+') as file:
-				json.dump(data,file)
+			file_handler(data)
 			click.secho('user added succesfully',bold=True,fg='green')	
 			
 			# ADD CONDITION TO CHECK IF TOKEN EXISTS
@@ -125,12 +128,11 @@ def user_config(adduser,deluser,showusers):
 
 		if user_name in data.keys():
 			response=requests.delete(data[user_name][1], auth=(user_name, password))
-
+			
 			if response.status_code==204:
 				data.pop(user_name)
 
-				with open(pat+'.nlt', 'w+')as file:
-					json.dump(data,file)
+				file_handler(data)
 				click.secho('user deleted succesfully',bold=True,fg='green')
 			else:
 				click.secho('Enter the right credentials',bold=True,fg='red')
