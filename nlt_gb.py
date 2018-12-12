@@ -6,6 +6,7 @@ import requests
 import click
 import json
 import colorama
+from cryptography.fernet import Fernet
 import licenses
 from pick import pick
 from pick import Picker
@@ -14,6 +15,23 @@ from pick import Picker
 def cli():
 	pass
 
+def encrypt(data):
+ 	cipher_key = Fernet.generate_key()
+ 	cipher = Fernet(cipher_key)
+ 	interim = json.dumps(data)
+ 	end_string = str.encode(interim)
+ 	encrypted_text = cipher.encrypt(end_string)
+ 	return encrypted_text+cipher_key
+
+
+def decrypt(data):
+	cipher_key = data[-44:]
+	data = data[:-44]
+	cipher = Fernet(cipher_key)
+	decrypted_text = cipher.decrypt(data)
+	interim = decrypted_text.decode()
+	end_string = json.loads(interim)
+	return end_string
 
 def file_handler(*argv):
 	osuser = getpass.getuser()
@@ -25,20 +43,25 @@ def file_handler(*argv):
 		pat = os.path.join("/", "home", osuser)
 	nltpath = os.path.join(pat,'.nlt')
 	if not os.path.isfile(nltpath):
-			with open(nltpath, 'w')as file:
+			with open(nltpath, 'wb')as file:
 				if(not len(argv)):
 					data = {}
 				else:
 					data = argv[0]
-				json.dump(data,file)
+				data = encrypt(data)
+				file.write(data)
+				data = decrypt(data)
 	else:
 		if(not len(argv)):
-			with open(nltpath, 'r') as file:
-				data = json.load(file)
+			with open(nltpath, 'rb') as file:
+				data = file.read()
+				data = decrypt(data)
 		else:
-			with open(nltpath,'w') as file:
+			with open(nltpath,'wb') as file:
 				data = argv[0]
-				json.dump(data,file)
+				data = encrypt(data)
+				file.write(data)
+				data = decrypt(data)
 
 	return data
 

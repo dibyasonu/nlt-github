@@ -24,7 +24,8 @@ setup(
         'click',
         'colorama',
         'windows-curses;platform_system=="Windows"',
-        'pick'
+        'pick',
+        'cryptography'
     ],
     entry_points='''
         [console_scripts]
