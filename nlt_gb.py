@@ -6,10 +6,13 @@ import requests
 import click
 import json
 import colorama
+import user_profile
 from cryptography.fernet import Fernet
 import licenses
 from pick import pick
 from pick import Picker
+from git import Repo
+
 
 @click.group()
 def cli():
@@ -214,7 +217,7 @@ def add(license, gitignore, readme):
 		picker = Picker(options, title, multi_select=True, min_selection_count=1)
 		picker.register_custom_handler(ord('s'),  go_back)
 		selected = picker.start()
-
+		
 		if type(selected) == list:
 			d_urls = [ignores[item[1]]['url'] for item in selected]
 		else:
@@ -230,6 +233,88 @@ def add(license, gitignore, readme):
 		with open('README.md', 'w+') as file:
 			pass	
 
+@cli.command('list-repos',short_help='view list of repositories belonging to the user.')
+@click.option('--username',prompt=True,help='provide username in whose repos are to be listed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos are needed,in that case username must be configured.')
+def list_repos(username,all):
+	data = file_handler()
+	user_profile.display_repo(data,username,all)
+
+@cli.command('view-profile',short_help='view basic info of any particular user.')
+@click.option('--username',prompt=True,help='provide username in whose info is needed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos count is needed,in that case username must be configured.')
+def list_repos(username,all):
+	data = file_handler()
+	user_profile.display_profile(data,username,all)
+
+@cli.command('pr',short_help='list pull requests of current repository')
+def list_pr():
+	repo = Repo(os.getcwd())
+	assert not repo.bare
+	url = repo.remotes.origin.url
+	repo_name = url.replace('https://github.com','').replace('.git','')
+	params = {'state':'open'}
+	data = file_handler()
+	url = "https://api.github.com/repos"+repo_name+"/pulls"
+	r = requests.get(url,params=params)
+	if r.status_code == 200:
+		pulls = r.json()
+		message = "pull requests for "+ repo_name[1:] +"\npress s to quit and enter to select"
+		options = [ '#'+pull['url'].split('/')[-1]+' '+pull['title']+' : '+pull['user']['login'] for pull in pulls ]
+		picker = Picker(options, message , indicator = '=>', default_index = 0)
+		picker.register_custom_handler(ord('s'),  go_back)
+		chosenpr, index = picker.start()
+		pull = pulls[index]
+		event_number = pull['url'].split('/')[-1]
+		from_to = pull['head']['label']+' to '+pull['base']['label']
+		click.clear()
+		click.secho('#'+event_number+': from ',nl=False)
+		click.secho(from_to,fg='cyan')
+		click.secho("title: ",nl=False)
+		click.secho(pull['title'],fg='yellow')
+		click.secho("made by: ",nl=False)
+		click.secho(pull['user']['login'],fg='blue')
+		if(pull['body']!=""):
+			click.secho("body:\n"+pull['body'],fg='yellow')
+		click.secho("created at: "+pull['created_at'])
+		comment_url = pull['comments_url']
+		r = requests.get(comment_url)
+		if r.status_code == 200:
+			comments = r.json()
+			if comments != []:
+				click.secho('comments:')
+			for comment in comments:
+				click.secho(comment['user']['login']+":"+comment['body'])
+			click.secho('=================================================')
+			inp = click.prompt("enter n to check the pull request in a new branch\n      m to merge the pull request\n      c to comment on the pull request \n      any other key to exit\n")
+			if inp == 'n':
+				click.secho('creating a new brach and checking out to the branch')
+				fetch = 'git fetch origin pull/'+event_number+'/head:pr#'+event_number
+				os.system(fetch)
+				checkout = 'git checkout pr#'+event_number
+				os.system(checkout)
+			elif inp == 'm':
+				click.confirm('Are you sure you want to merge this pull request ?',abort=True)
+				username = click.prompt("username")
+				headers = {"Authorization": "token "+data[username][0]}
+				url = "https://api.github.com/repos"+repo_name+"/pulls/"+event_number+"/merge"
+				r = requests.put(url,headers=headers)
+				click.secho(r.json()['message'])
+			elif inp == 'c':
+				inp = click.prompt("Enter the comment that you want to make")
+				username = click.prompt("username")
+				headers = {"Authorization": "token "+data[username][0]}
+				url = "https://api.github.com/repos"+repo_name+"/issues/"+event_number+"/comments"
+				payload = {"body":inp}
+				r = requests.post(url,data=json.dumps(payload),headers=headers)
+				if r.status_code == 201:
+					click.secho("comment published")
+				else:
+					click.secho("Internal Error",fg='red')
+		else:
+			click.secho("Internal error"+r.status_code, fg='red')
+	else:
+		click.secho("Internal error", fg='red')
 
 if __name__ == '__main__':
 	cli()
