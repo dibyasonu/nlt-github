@@ -6,6 +6,7 @@ import requests
 import click
 import json
 import colorama
+import user_profile
 from cryptography.fernet import Fernet
 import licenses
 from pick import pick
@@ -214,7 +215,7 @@ def add(license, gitignore, readme):
 		picker = Picker(options, title, multi_select=True, min_selection_count=1)
 		picker.register_custom_handler(ord('s'),  go_back)
 		selected = picker.start()
-
+		
 		if type(selected) == list:
 			d_urls = [ignores[item[1]]['url'] for item in selected]
 		else:
@@ -229,6 +230,20 @@ def add(license, gitignore, readme):
 	if readme:			
 		with open('README.md', 'w+') as file:
 			pass	
+
+@cli.command('list-repos',short_help='view list of repositories belonging to the user.')
+@click.option('--username',prompt=True,help='provide username in whose repos are to be listed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos are needed,in that case username must be configured.')
+def list_repos(username,all):
+	data = file_handler()
+	user_profile.display_repo(data,username,all)
+
+@cli.command('view-profile',short_help='view basic info of any particular user.')
+@click.option('--username',prompt=True,help='provide username in whose info is needed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos count is needed,in that case username must be configured.')
+def list_repos(username,all):
+	data = file_handler()
+	user_profile.display_profile(data,username,all)
 
 
 if __name__ == '__main__':
