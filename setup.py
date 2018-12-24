@@ -25,7 +25,8 @@ setup(
         'colorama',
         'windows-curses;platform_system=="Windows"',
         'pick',
-        'cryptography'
+        'cryptography',
+        'prettytable'
     ],
     entry_points='''
         [console_scripts]
