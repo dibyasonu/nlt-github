@@ -8,37 +8,30 @@ import json
 from prettytable import PrettyTable
 
 def display_repo(data,username,all):
-	if all:
-		if username in data.keys():
-			url='https://api.github.com/user/repos'
-			headers={"Authorization": "token "+data[username][0]}
-			response=requests.get(url,headers=headers)
-		else:
-			click.secho('User not configured can not view private repos. Add users by running "nlt config --adduser".\n', fg = "red", bold = True)
-			sys.exit(0)
-	else:
-		url='https://api.github.com/users/'+username+'/repos'
-		response=requests.get(url)
-	if response.status_code == 200:
-		response=response.json()
-		t = PrettyTable(['Sr.no','Repo','url','* star'])
-		i=1
-		for repo in response:
-			 t.add_row([i,repo["name"],repo["html_url"],repo["stargazers_count"]])
-			 i+=1
-		i-=1
-		j=0
-        #click.clear()
-		while(j+10<i):
-			print(t.get_string(start=j,end=j+10))
-			j+=10
-			click.confirm('Do you want to continue?',abort=True)
-			click.clear()
-		if(j<=i):
-			print(t.get_string(start=j,end=i))
-	else:
-		click.secho("Internal error occured.", bold=True, fg='red')
-		sys.exit(0)
+    if all:
+        if username in data.keys():
+            payload = {'type':'owner','per_page':100}
+            url='https://api.github.com/user/repos'
+            headers={"Authorization": "token "+data[username][0]}
+            response=requests.get(url,headers=headers,params=payload)
+        else:
+            click.secho('User not configured can not view private repos. Add users by running "nlt config --adduser".\n', fg = "red", bold = True)
+            sys.exit(0)
+    else:
+        payload = {'per_page':100}
+        url='https://api.github.com/users/'+username+'/repos'
+        response=requests.get(url,payload)
+    if response.status_code == 200:
+        response=response.json()
+        t = PrettyTable(['Repo','url','* star'])
+        i=1
+        for repo in response:
+            t.add_row([repo["name"],repo["html_url"],repo["stargazers_count"]])
+
+        click.secho(t.get_string(sortby="* star",reversesort=True))
+    else:
+        click.secho("Internal error occured.", bold=True, fg='red')
+        sys.exit(0)
 
 def display_profile(data,username,all):
     if all:
@@ -55,8 +48,14 @@ def display_profile(data,username,all):
     if response.status_code == 200:
         response=response.json()
         click.secho(response['name']+" ("+username+")", bold=True, fg='yellow')
-        click.secho("Location: "+str(response['location']))
-        click.secho("Bio: "+response['bio'])
+        if(response['email']):
+            click.secho("Location: "+str(response['email']))
+        if(response['company']):
+            click.secho("Company: "+str(response['company']))
+        if(response['location']):
+            click.secho("Location: "+str(response['location']))
+        if(response['bio']):
+            click.secho("Bio: "+response['bio'])
         click.secho("Public repos: "+str(response['public_repos']))
         if all:
             click.secho("Private repos: "+str(response['total_private_repos']))

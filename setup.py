@@ -26,7 +26,8 @@ setup(
         'windows-curses;platform_system=="Windows"',
         'pick',
         'cryptography',
-        'prettytable'
+        'prettytable',
+        'gitpython'
     ],
     entry_points='''
         [console_scripts]
