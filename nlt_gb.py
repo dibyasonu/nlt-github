@@ -262,6 +262,9 @@ def add(license, gitignore, readme):
 @click.option('--username',prompt=True,help='provide username in whose repos are to be listed.')
 @click.option('--all',is_flag=bool,default=False,help='specify if private repos are needed,in that case username must be configured.')
 def list_repos(username,all):
+	'''
+	view list of repositories belonging to the user, private repositories can also be listed if user is configured.
+	'''
 	data = file_handler()
 	user_profile.display_repo(data,username,all)
 
@@ -269,11 +272,17 @@ def list_repos(username,all):
 @click.option('--username',prompt=True,help='provide username in whose info is needed.')
 @click.option('--all',is_flag=bool,default=False,help='specify if private repos count is needed,in that case username must be configured.')
 def list_repos(username,all):
+	'''
+	view basic profile information of a particular user 
+	'''
 	data = file_handler()
 	user_profile.display_profile(data,username,all)
 
 @cli.command('pr',short_help='list pull requests of current repository')
 def list_pr():
+	'''
+	list open pull requests at remote of current git repository test them, merge them or comment on the thread
+	'''
 	repo = Repo(os.getcwd())
 	assert not repo.bare
 	url = repo.remotes.origin.url
