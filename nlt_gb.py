@@ -78,6 +78,20 @@ def execute(com):
 def go_back(picker):
 	return None, -1
 
+def get_languages(cwd,options,language_ext,list_of_lang=[]):
+	for element in os.listdir(cwd):
+		path = os.path.join(cwd,element)
+		if os.path.isfile(path):
+			ext = '.'+element.split('.')[-1]
+			if ext in language_ext.keys():
+				lang = language_ext[ext]
+				ignore = lang+'.gitignore'
+				if ignore in options and ignore not in list_of_lang:
+					list_of_lang.append(ignore)
+		elif os.path.isdir(path):
+			list_of_lang = get_languages(path,options,language_ext,list_of_lang)
+	return list_of_lang
+
 
 @cli.command('create-remote',short_help='create a new repo in Github and add remote origin to the local project.')
 @click.option('--username',prompt=True,help='provide username in whose account the new repo is to be created.')
@@ -214,17 +228,28 @@ def add(license, gitignore, readme):
 		promptMessage = 'Choose a gitignore \n(press SPACE to mark, ENTER to continue, s to stop):'
 		title = promptMessage
 		options = [item['name'] for item in ignores]
-		picker = Picker(options, title, multi_select=True, min_selection_count=1)
-		picker.register_custom_handler(ord('s'),  go_back)
-		selected = picker.start()
-		
+		language_ext = requests.get("https://raw.githubusercontent.com/fristonio/Resources/master/lang-ext.json").json()
+		selected_ext = get_languages(os.getcwd(),options,language_ext)
+		for item in selected_ext:
+			index = options.index(item)
+			options.remove(item)
+			ignore = ignores[index]
+			ignores.remove(ignore)
+			options = [item]+options
+			ignores = [ignore]+ignores
+		inp = click.prompt("do you want smart gitignore(Y) or manually select(N)?")
+		if inp[0].lower() == 'n':
+			picker = Picker(options, title, multi_select=True, min_selection_count=1)
+			picker.register_custom_handler(ord('s'),  go_back)
+			selected = picker.start()
+		elif inp[0].lower() == 'y':
+			selected = [[item,options.index(item)] for item in selected_ext]
 		if type(selected) == list:
 			d_urls = [ignores[item[1]]['url'] for item in selected]
 		else:
 			sys.exit(0)
 		sep = "\n"+("#" * 40)+"\n"
 		str_write = ''.join(["".join(sep+requests.get(item).text+sep) for item in d_urls])
-
 		with open('.gitignore', 'a+') as file:
 			file.write(str_write)
 		click.secho("gitignore templates added succesfully.\n", fg = "green", bold = True)
