@@ -5,6 +5,7 @@ import datetime
 import requests
 import click
 import json
+import sys
 from subprocess import call, STDOUT
 
 

@@ -94,11 +94,10 @@ def get_languages(cwd,options,language_ext,list_of_lang=[]):
 
 
 @cli.command('create-remote',short_help='create a new repo in Github and add remote origin to the local project.')
-@click.option('--username',prompt=True,help='provide username in whose account the new repo is to be created.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose account the new repo is to be created.')
 @click.option('--privy',is_flag=bool,default=False,help="create a private repository if used.")
 def push_remote(username,privy):
 	data=file_handler()
-
 	if username in data.keys():
 		proname=click.prompt('Please enter the Project name')
 		desc=click.prompt('A short description of the repository.')
@@ -130,7 +129,8 @@ def push_remote(username,privy):
 @click.option('--adduser',is_flag=bool,default=False,help="Creates a personal access token in github and stores them locally.")
 @click.option('--deluser',is_flag=bool,default=False,help="Remove created personal access token from github and locally.")
 @click.option('--showusers',is_flag=bool,default=False,help="Show added users.")
-def user_config(adduser,deluser,showusers):
+@click.option('--setdefault',is_flag=bool,default=False,help="add default users.")
+def user_config(adduser,deluser,showusers,setdefault):
 	data=file_handler()
 	# if admin:
 
@@ -154,6 +154,8 @@ def user_config(adduser,deluser,showusers):
 
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
+				if click.confirm('Do you want to add this account as default account ?'):
+					data['default']=[response.json()['token'],response.json()['url'],user_name]
 
 			file_handler(data)
 			click.secho('user added succesfully',bold=True,fg='green')	
@@ -170,8 +172,9 @@ def user_config(adduser,deluser,showusers):
 			response=requests.delete(data[user_name][1], auth=(user_name, password))
 			
 			if response.status_code==204:
+				if 'default' in data and data['default'][2]==user_name:
+					data.pop('default')
 				data.pop(user_name)
-
 				file_handler(data)
 				click.secho('user deleted succesfully',bold=True,fg='green')
 			else:
@@ -180,14 +183,29 @@ def user_config(adduser,deluser,showusers):
 			click.secho('user not found',bold=True,fg='red')
 
 	if showusers:
-		users=[x for x in data]
-
+		users=[x for x in data if x != 'default']
+		if 'default' in data: 
+			default = data['default'][2]
+		else:
+			default = None
 		if len(users):
 			for i in users:
-				click.secho(i,bold=True,fg='blue')
+				if i!=default:
+					click.secho(i,bold=True,fg='blue')
+				else:
+					click.secho(i+" *",bold=True,fg='blue')
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
-		#checks users as well as their status and generate the status	
+		#checks users as well as their status and generate the status
+	
+	if setdefault:
+		user_name=click.prompt('Please enter your Github user name')
+		if user_name in data.keys():
+			data['default'] = data[user_name]+[user_name]
+			file_handler(data)
+			click.secho('default user added',bold=True,fg='yellow')
+		else:
+			click.secho('user not found',bold=True,fg='red')	
 
 @cli.command('add',help="Add required files")
 @click.option('--license',is_flag=bool,default=False,help="Add license templates from the list to your project.")
@@ -259,21 +277,31 @@ def add(license, gitignore, readme):
 			pass	
 
 @cli.command('list-repos',short_help='view list of repositories belonging to the user.')
-@click.option('--username',prompt=True,help='provide username in whose repos are to be listed.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose repos are to be listed.')
 @click.option('--all',is_flag=bool,default=False,help='specify if private repos are needed,in that case username must be configured.')
 def list_repos(username,all):
+	'''
+	view list of repositories belonging to the user, private repositories can also be listed if user is configured.
+	'''
 	data = file_handler()
 	user_profile.display_repo(data,username,all)
+	
 
 @cli.command('view-profile',short_help='view basic info of any particular user.')
-@click.option('--username',prompt=True,help='provide username in whose info is needed.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose info is needed.')
 @click.option('--all',is_flag=bool,default=False,help='specify if private repos count is needed,in that case username must be configured.')
 def list_repos(username,all):
+	'''
+	view basic profile information of a particular user 
+	'''
 	data = file_handler()
 	user_profile.display_profile(data,username,all)
 
 @cli.command('pr',short_help='list pull requests of current repository')
 def list_pr():
+	'''
+	list open pull requests at remote of current git repository test them, merge them or comment on the thread
+	'''
 	repo = Repo(os.getcwd())
 	assert not repo.bare
 	url = repo.remotes.origin.url
