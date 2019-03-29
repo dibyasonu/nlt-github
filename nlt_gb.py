@@ -6,10 +6,13 @@ import requests
 import click
 import json
 import colorama
+import user_profile
 from cryptography.fernet import Fernet
 import licenses
 from pick import pick
 from pick import Picker
+from git import Repo
+
 
 @click.group()
 def cli():
@@ -75,13 +78,26 @@ def execute(com):
 def go_back(picker):
 	return None, -1
 
+def get_languages(cwd,options,language_ext,list_of_lang=[]):
+	for element in os.listdir(cwd):
+		path = os.path.join(cwd,element)
+		if os.path.isfile(path):
+			ext = '.'+element.split('.')[-1]
+			if ext in language_ext.keys():
+				lang = language_ext[ext]
+				ignore = lang+'.gitignore'
+				if ignore in options and ignore not in list_of_lang:
+					list_of_lang.append(ignore)
+		elif os.path.isdir(path):
+			list_of_lang = get_languages(path,options,language_ext,list_of_lang)
+	return list_of_lang
+
 
 @cli.command('create-remote',short_help='create a new repo in Github and add remote origin to the local project.')
-@click.option('--username',prompt=True,help='provide username in whose account the new repo is to be created.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose account the new repo is to be created.')
 @click.option('--privy',is_flag=bool,default=False,help="create a private repository if used.")
 def push_remote(username,privy):
 	data=file_handler()
-
 	if username in data.keys():
 		proname=click.prompt('Please enter the Project name')
 		desc=click.prompt('A short description of the repository.')
@@ -113,7 +129,8 @@ def push_remote(username,privy):
 @click.option('--adduser',is_flag=bool,default=False,help="Creates a personal access token in github and stores them locally.")
 @click.option('--deluser',is_flag=bool,default=False,help="Remove created personal access token from github and locally.")
 @click.option('--showusers',is_flag=bool,default=False,help="Show added users.")
-def user_config(adduser,deluser,showusers):
+@click.option('--setdefault',is_flag=bool,default=False,help="add default users.")
+def user_config(adduser,deluser,showusers,setdefault):
 	data=file_handler()
 	# if admin:
 
@@ -137,6 +154,8 @@ def user_config(adduser,deluser,showusers):
 
 			if response.status_code==201:
 				data[user_name]=[response.json()['token'],response.json()['url']]
+				if click.confirm('Do you want to add this account as default account ?'):
+					data['default']=[response.json()['token'],response.json()['url'],user_name]
 
 			file_handler(data)
 			click.secho('user added succesfully',bold=True,fg='green')	
@@ -153,8 +172,9 @@ def user_config(adduser,deluser,showusers):
 			response=requests.delete(data[user_name][1], auth=(user_name, password))
 			
 			if response.status_code==204:
+				if 'default' in data and data['default'][2]==user_name:
+					data.pop('default')
 				data.pop(user_name)
-
 				file_handler(data)
 				click.secho('user deleted succesfully',bold=True,fg='green')
 			else:
@@ -163,14 +183,29 @@ def user_config(adduser,deluser,showusers):
 			click.secho('user not found',bold=True,fg='red')
 
 	if showusers:
-		users=[x for x in data]
-
+		users=[x for x in data if x != 'default']
+		if 'default' in data: 
+			default = data['default'][2]
+		else:
+			default = None
 		if len(users):
 			for i in users:
-				click.secho(i,bold=True,fg='blue')
+				if i!=default:
+					click.secho(i,bold=True,fg='blue')
+				else:
+					click.secho(i+" *",bold=True,fg='blue')
 		else:
 			click.secho('No users added. Add users by running "nlt config --adduser"',bold=True,fg='red')
-		#checks users as well as their status and generate the status	
+		#checks users as well as their status and generate the status
+	
+	if setdefault:
+		user_name=click.prompt('Please enter your Github user name')
+		if user_name in data.keys():
+			data['default'] = data[user_name]+[user_name]
+			file_handler(data)
+			click.secho('default user added',bold=True,fg='yellow')
+		else:
+			click.secho('user not found',bold=True,fg='red')	
 
 @cli.command('add',help="Add required files")
 @click.option('--license',is_flag=bool,default=False,help="Add license templates from the list to your project.")
@@ -211,17 +246,28 @@ def add(license, gitignore, readme):
 		promptMessage = 'Choose a gitignore \n(press SPACE to mark, ENTER to continue, s to stop):'
 		title = promptMessage
 		options = [item['name'] for item in ignores]
-		picker = Picker(options, title, multi_select=True, min_selection_count=1)
-		picker.register_custom_handler(ord('s'),  go_back)
-		selected = picker.start()
-
+		language_ext = requests.get("https://raw.githubusercontent.com/fristonio/Resources/master/lang-ext.json").json()
+		selected_ext = get_languages(os.getcwd(),options,language_ext)
+		for item in selected_ext:
+			index = options.index(item)
+			options.remove(item)
+			ignore = ignores[index]
+			ignores.remove(ignore)
+			options = [item]+options
+			ignores = [ignore]+ignores
+		inp = click.prompt("do you want smart gitignore(Y) or manually select(N)?")
+		if inp[0].lower() == 'n':
+			picker = Picker(options, title, multi_select=True, min_selection_count=1)
+			picker.register_custom_handler(ord('s'),  go_back)
+			selected = picker.start()
+		elif inp[0].lower() == 'y':
+			selected = [[item,options.index(item)] for item in selected_ext]
 		if type(selected) == list:
 			d_urls = [ignores[item[1]]['url'] for item in selected]
 		else:
 			sys.exit(0)
 		sep = "\n"+("#" * 40)+"\n"
 		str_write = ''.join(["".join(sep+requests.get(item).text+sep) for item in d_urls])
-
 		with open('.gitignore', 'a+') as file:
 			file.write(str_write)
 		click.secho("gitignore templates added succesfully.\n", fg = "green", bold = True)
@@ -230,6 +276,98 @@ def add(license, gitignore, readme):
 		with open('README.md', 'w+') as file:
 			pass	
 
+@cli.command('list-repos',short_help='view list of repositories belonging to the user.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose repos are to be listed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos are needed,in that case username must be configured.')
+def list_repos(username,all):
+	'''
+	view list of repositories belonging to the user, private repositories can also be listed if user is configured.
+	'''
+	data = file_handler()
+	user_profile.display_repo(data,username,all)
+	
+
+@cli.command('view-profile',short_help='view basic info of any particular user.')
+@click.option('--username',default='default',prompt=True,help='provide username in whose info is needed.')
+@click.option('--all',is_flag=bool,default=False,help='specify if private repos count is needed,in that case username must be configured.')
+def list_repos(username,all):
+	'''
+	view basic profile information of a particular user 
+	'''
+	data = file_handler()
+	user_profile.display_profile(data,username,all)
+
+@cli.command('pr',short_help='list pull requests of current repository')
+def list_pr():
+	'''
+	list open pull requests at remote of current git repository test them, merge them or comment on the thread
+	'''
+	repo = Repo(os.getcwd())
+	assert not repo.bare
+	url = repo.remotes.origin.url
+	repo_name = url.replace('https://github.com','').replace('.git','')
+	params = {'state':'open'}
+	data = file_handler()
+	url = "https://api.github.com/repos"+repo_name+"/pulls"
+	r = requests.get(url,params=params)
+	if r.status_code == 200:
+		pulls = r.json()
+		message = "pull requests for "+ repo_name[1:] +"\npress s to quit and enter to select"
+		options = [ '#'+pull['url'].split('/')[-1]+' '+pull['title']+' : '+pull['user']['login'] for pull in pulls ]
+		picker = Picker(options, message , indicator = '=>', default_index = 0)
+		picker.register_custom_handler(ord('s'),  go_back)
+		chosenpr, index = picker.start()
+		pull = pulls[index]
+		event_number = pull['url'].split('/')[-1]
+		from_to = pull['head']['label']+' to '+pull['base']['label']
+		click.clear()
+		click.secho('#'+event_number+': from ',nl=False)
+		click.secho(from_to,fg='cyan')
+		click.secho("title: ",nl=False)
+		click.secho(pull['title'],fg='yellow')
+		click.secho("made by: ",nl=False)
+		click.secho(pull['user']['login'],fg='blue')
+		if(pull['body']!=""):
+			click.secho("body:\n"+pull['body'],fg='yellow')
+		click.secho("created at: "+pull['created_at'])
+		comment_url = pull['comments_url']
+		r = requests.get(comment_url)
+		if r.status_code == 200:
+			comments = r.json()
+			if comments != []:
+				click.secho('comments:')
+			for comment in comments:
+				click.secho(comment['user']['login']+":"+comment['body'])
+			click.secho('=================================================')
+			inp = click.prompt("enter n to check the pull request in a new branch\n      m to merge the pull request\n      c to comment on the pull request \n      any other key to exit\n")
+			if inp == 'n':
+				click.secho('creating a new brach and checking out to the branch')
+				fetch = 'git fetch origin pull/'+event_number+'/head:pr#'+event_number
+				os.system(fetch)
+				checkout = 'git checkout pr#'+event_number
+				os.system(checkout)
+			elif inp == 'm':
+				click.confirm('Are you sure you want to merge this pull request ?',abort=True)
+				username = click.prompt("username")
+				headers = {"Authorization": "token "+data[username][0]}
+				url = "https://api.github.com/repos"+repo_name+"/pulls/"+event_number+"/merge"
+				r = requests.put(url,headers=headers)
+				click.secho(r.json()['message'])
+			elif inp == 'c':
+				inp = click.prompt("Enter the comment that you want to make")
+				username = click.prompt("username")
+				headers = {"Authorization": "token "+data[username][0]}
+				url = "https://api.github.com/repos"+repo_name+"/issues/"+event_number+"/comments"
+				payload = {"body":inp}
+				r = requests.post(url,data=json.dumps(payload),headers=headers)
+				if r.status_code == 201:
+					click.secho("comment published")
+				else:
+					click.secho("Internal Error",fg='red')
+		else:
+			click.secho("Internal error"+r.status_code, fg='red')
+	else:
+		click.secho("Internal error", fg='red')
 
 if __name__ == '__main__':
 	cli()
